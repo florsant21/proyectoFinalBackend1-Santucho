@@ -1,4 +1,4 @@
-import Cart from "../models/Cart.js";
+import Cart from "../models/Carts.js";
 
 const updateCart = async (req, res) => {
   try {

@@ -6,9 +6,14 @@ const getProducts = async (req, res) => {
     limit = parseInt(limit);
     page = parseInt(page);
 
-    const filter = query
-      ? { $or: [{ category: query }, { available: query === "true" }] }
-      : {};
+    const filter = {};
+    if (query) {
+      if (query === "true" || query === "false") {
+        filter.available = query === "true";
+      } else {
+        filter.category = query;
+      }
+    }    
 
     const options = {
       limit,
