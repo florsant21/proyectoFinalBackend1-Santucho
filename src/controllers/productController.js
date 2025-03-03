@@ -13,7 +13,7 @@ const getProducts = async (req, res) => {
       } else {
         filter.category = query;
       }
-    }    
+    }
 
     const options = {
       limit,
@@ -46,15 +46,22 @@ const getProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, price, category, stock, available } = req.body;
+    const { name, description, price, category, available } = req.body;
 
-    if (!name || !price || !category || !stock) {
-      return res.status(400).json({ status: "error", message: "Faltan datos" });
-    }
+    const newProduct = new Product({
+      name,
+      description,
+      price,
+      category,
+      available,
+    });
 
-    const newProduct = new Product({ name, price, category, stock, available });
     await newProduct.save();
-    res.status(201).json({ status: "success", product: newProduct });
+    res.status(201).json({
+      status: "success",
+      message: "Producto creado correctamente",
+      payload: newProduct,
+    });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
   }
