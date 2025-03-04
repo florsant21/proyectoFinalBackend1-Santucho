@@ -131,6 +131,38 @@ io.on("connection", (socket) => {
       console.error("Error al limpiar el carrito:", error);
     }
   });
+  socket.on("updateProductQuantity", async ({ productId, quantity }) => {
+    try {
+        let cart = await Cart.findOne();
+        if (cart) {
+            const productIndex = cart.products.findIndex(
+                (p) => p.product.toString() === productId
+            );
+            if (productIndex !== -1) {
+                cart.products[productIndex].quantity = quantity;
+                await cart.save();
+                io.emit("updateCart", await Cart.findOne().populate("products.product"));
+            }
+        }
+    } catch (error) {
+        console.error("Error al actualizar la cantidad del producto:", error);
+    }
+});
+
+socket.on("removeFromCart", async (productId) => {
+    try {
+        let cart = await Cart.findOne();
+        if (cart) {
+            cart.products = cart.products.filter(
+                (p) => p.product.toString() !== productId
+            );
+            await cart.save();
+            io.emit("updateCart", await Cart.findOne().populate("products.product"));
+        }
+    } catch (error) {
+        console.error("Error al eliminar el producto del carrito:", error);
+    }
+});
 });
 
 server.listen(PORT, () => {

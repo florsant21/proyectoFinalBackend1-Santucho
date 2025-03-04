@@ -6,7 +6,9 @@
             <ul>
                 {{#each cart.products}}
                     <li>
-                        {{this.product.name}} - ${{this.product.price}} - Cantidad: {{this.quantity}}
+                        {{this.product.name}} - ${{this.product.price}}
+                        <input type="number" value="{{this.quantity}}" min="1" onchange="updateQuantity('{{this.product._id}}', this.value)">
+                        <button onclick="removeFromCart('{{this.product._id}}')">Eliminar</button>
                     </li>
                 {{/each}}
             </ul>
@@ -29,13 +31,21 @@
 
             cart.products.forEach(product => {
                 const li = document.createElement("li");
-                li.innerHTML = `${product.product.name} - $${product.product.price} - Cantidad: ${product.quantity}`;
+                li.innerHTML = `${product.product.name} - $${product.product.price} - Cantidad: <input type="number" value="${product.quantity}" min="1" onchange="updateQuantity('${product.product._id}', this.value)"> <button onclick="removeFromCart('${product.product._id}')">Eliminar</button>`;
                 cartList.appendChild(li);
             });
         } else {
             cartList.innerHTML = "";
         }
     });
+
+    function updateQuantity(productId, quantity) {
+        socket.emit("updateProductQuantity", { productId, quantity: parseInt(quantity) });
+    }
+
+    function removeFromCart(productId) {
+        socket.emit("removeFromCart", productId);
+    }
 
     function clearCart() {
         socket.emit("clearCart");
