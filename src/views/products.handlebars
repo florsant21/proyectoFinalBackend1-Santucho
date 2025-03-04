@@ -1,0 +1,30 @@
+<div>
+    <h1>Lista de Productos</h1>
+    <ul id="productList">
+        {{#each products}}
+            <li>
+                {{this.name}} - ${{this.price}}
+                <button onclick="addToCart('{{this._id}}')">Añadir al carrito</button>
+            </li>
+        {{/each}}
+    </ul>
+</div>
+
+<script>
+    const socket = io();
+
+    function addToCart(productId) {
+        socket.emit("addToCart", productId);
+    }
+
+    socket.on("updateProducts", (products) => {
+        const productList = document.getElementById("productList");
+        productList.innerHTML = "";
+
+        products.forEach(product => {
+            const li = document.createElement("li");
+            li.innerHTML = `${product.name} - $${product.price} <button onclick="addToCart('${product._id}')">Añadir al carrito</button>`;
+            productList.appendChild(li);
+        });
+    });
+</script>

@@ -9,6 +9,7 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 import exphbs from "express-handlebars";
 import Product from "./src/models/Product.js";
+import Cart from "./src/models/Carts.js";
 
 dotenv.config();
 
@@ -25,6 +26,10 @@ connectDB();
 const hbs = exphbs.create({
   allowProtoPropertiesByDefault: true,
   allowProtoMethodsByDefault: true,
+  runtimeOptions: {
+    allowProtoPropertiesByDefault: true,
+    allowProtoMethodsByDefault: true,
+  },
 });
 app.engine("handlebars", hbs.engine);
 app.set("view engine", "handlebars");
@@ -37,23 +42,10 @@ app.use(express.json());
 app.use("/api/products", productRoutes);
 app.use("/api/carts", cartRoutes);
 
-app.get("/", async (req, res) => {
-  try {
-    const products = await Product.find();
-    res.render("home", { products });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 app.get("/products", async (req, res) => {
   try {
     const products = await Product.find();
-    const simpleProducts = products.map(product => ({
-      name: product.name,
-      price: product.price
-    }));
-    res.render("home", { products: simpleProducts });
+    res.render("products", { products });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -62,11 +54,25 @@ app.get("/products", async (req, res) => {
 app.get("/real-time-products", async (req, res) => {
   try {
     const products = await Product.find();
-    const simpleProducts = products.map(product => ({
-      name: product.name,
-      price: product.price
-    }));
-    res.render("realTimeProducts", { products: simpleProducts });
+    res.render("realTimeProducts", { products });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.get("/cart", async (req, res) => {
+  try {
+    const cart = await Cart.findOne();
+    if (!cart) {
+      const newCart = new Cart({ products: [] });
+      await newCart.save();
+      res.render("cart", { cart: newCart });
+    } else {
+      const populatedCart = await Cart.findById(cart._id).populate(
+        "products.product"
+      );
+      res.render("cart", { cart: populatedCart });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -85,15 +91,44 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("deleteProduct", async (index) => {
+  socket.on("deleteProduct", async (productId) => {
     try {
-      const products = await Product.find();
-      if (products[index]) {
-        await Product.findByIdAndDelete(products[index]._id);
-        io.emit("updateProducts", await Product.find());
-      }
+      await Product.findByIdAndDelete(productId);
+      io.emit("updateProducts", await Product.find());
     } catch (error) {
       console.error("Error al eliminar producto:", error);
+    }
+  });
+  socket.on("addToCart", async (productId) => {
+    try {
+      let cart = await Cart.findOne();
+
+      if (!cart) {
+        cart = new Cart({ products: [{ product: productId, quantity: 1 }] });
+      } else {
+        const productIndex = cart.products.findIndex(
+          (p) => p.product.toString() === productId
+        );
+
+        if (productIndex === -1) {
+          cart.products.push({ product: productId, quantity: 1 });
+        } else {
+          cart.products[productIndex].quantity += 1;
+        }
+      }
+
+      await cart.save();
+      io.emit("updateCart", await Cart.findOne().populate("products.product"));
+    } catch (error) {
+      console.error("Error al agregar al carrito:", error);
+    }
+  });
+  socket.on("clearCart", async () => {
+    try {
+      await Cart.findOneAndDelete();
+      io.emit("updateCart", null);
+    } catch (error) {
+      console.error("Error al limpiar el carrito:", error);
     }
   });
 });

@@ -1,17 +1,53 @@
 <div>
     <h1>Lista de Productos en Tiempo Real</h1>
-    
+
     <form id="productForm">
         <input type="text" id="name" placeholder="Nombre del producto" required />
         <input type="number" id="price" placeholder="Precio" required />
+        <input type="number" id="stock" placeholder="Stock" required />
+        <input type="text" id="category" placeholder="Categoría" required />
         <button type="submit">Agregar Producto</button>
     </form>
 
     <ul id="productList">
         {{#each products}}
-            <li>{{this.name}} - ${{this.price}} <button onclick="deleteProduct({{@index}})">Eliminar</button></li>
+            <li>
+                {{this.name}} - ${{this.price}} - Stock: {{this.stock}} - Categoría: {{this.category}}
+                <button onclick="deleteProduct('{{this._id}}')">Eliminar</button>
+            </li>
         {{/each}}
     </ul>
 </div>
 
-<script src="/js/realtime.js"></script>
+<script>
+    const socket = io();
+
+    const productForm = document.getElementById("productForm");
+    const productList = document.getElementById("productList");
+
+    productForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = document.getElementById("name").value;
+        const price = document.getElementById("price").value;
+        const stock = document.getElementById("stock").value;
+        const category = document.getElementById("category").value;
+
+        if (name && price && stock && category) {
+            socket.emit("newProduct", { name, price, stock, category });
+            productForm.reset();
+        }
+    });
+
+    function deleteProduct(productId) {
+        socket.emit("deleteProduct", productId);
+    }
+
+    socket.on("updateProducts", (products) => {
+        productList.innerHTML = "";
+        products.forEach((product) => {
+            const li = document.createElement("li");
+            li.innerHTML = `${product.name} - $${product.price} - Stock: ${product.stock} - Categoria: ${product.category} <button onclick="deleteProduct('${product._id}')">Eliminar</button>`;
+            productList.appendChild(li);
+        });
+    });
+</script>

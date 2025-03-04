@@ -1,0 +1,43 @@
+<div>
+    <h1>Carrito de Compras</h1>
+
+    {{#if cart}}
+        {{#if cart.products.length}}
+            <ul>
+                {{#each cart.products}}
+                    <li>
+                        {{this.product.name}} - ${{this.product.price}} - Cantidad: {{this.quantity}}
+                    </li>
+                {{/each}}
+            </ul>
+            <button onclick="clearCart()">Vaciar Carrito</button>
+        {{else}}
+            <p>El carrito está vacío.</p>
+        {{/if}}
+    {{else}}
+        <p>El carrito está vacío.</p>
+    {{/if}}
+</div>
+
+<script>
+    const socket = io();
+
+    socket.on("updateCart", (cart) => {
+        const cartList = document.querySelector("ul");
+        if (cart) {
+            cartList.innerHTML = "";
+
+            cart.products.forEach(product => {
+                const li = document.createElement("li");
+                li.innerHTML = `${product.product.name} - $${product.product.price} - Cantidad: ${product.quantity}`;
+                cartList.appendChild(li);
+            });
+        } else {
+            cartList.innerHTML = "";
+        }
+    });
+
+    function clearCart() {
+        socket.emit("clearCart");
+    }
+</script>
